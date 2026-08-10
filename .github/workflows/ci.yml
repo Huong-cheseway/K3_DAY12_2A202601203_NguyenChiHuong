@@ -68,6 +68,7 @@ jobs:
           set -euo pipefail
           railway up \
             --project "$RAILWAY_PROJECT_ID" \
+            --environment production \
             --service agent \
             --detach \
             --json \
