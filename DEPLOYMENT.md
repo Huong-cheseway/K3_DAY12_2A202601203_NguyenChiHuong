@@ -4,9 +4,9 @@
 
 | Mục | Nội dung |
 |-----|----------|
-| Họ và tên | Nguyễn Chí Hương |
+| Họ và tên | Nguyễn Chí Hướng |
 | Mã học viên | 2A202601203 |
-| Repo | https://github.com/Huong-cheseway/K3_Day12_2A202601203_NguyenChiHuong |
+| Repo | https://github.com/Huong-cheseway/K3_DAY12_2A202601203_NguyenChiHuong |
 
 ## Service
 
