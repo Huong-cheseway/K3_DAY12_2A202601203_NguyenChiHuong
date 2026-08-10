@@ -1,0 +1,81 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run tests
+        env:
+          AGENT_API_KEY: ci-dummy-key
+          REDIS_URL: fake://
+        run: >-
+          python -m pytest tests/ -v -m "not docker"
+          --ignore=tests/test_cp5.py
+          --ignore=tests/test_bonus_cicd.py
+
+  build:
+    name: Build Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Build production image
+        run: docker build --tag day12-agent:${{ github.sha }} .
+
+  deploy:
+    name: Deploy to Railway
+    needs: [test, build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_PROJECT_ID: 712b9c7c-d24b-470b-9ade-0a818efdb4a9
+      PUBLIC_URL: https://agent-production-ddfe.up.railway.app
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install --global @railway/cli@5.35.0
+
+      - name: Deploy
+        id: railway
+        shell: bash
+        run: |
+          set -euo pipefail
+          railway up \
+            --project "$RAILWAY_PROJECT_ID" \
+            --service agent \
+            --detach \
+            --json \
+            --message "GitHub Actions ${GITHUB_SHA}"
+
+      - name: Smoke test
+        run: |
+          sleep 45
+          curl --fail --silent --show-error \
+            --retry 10 --retry-delay 6 --retry-all-errors \
+            "$PUBLIC_URL/health"
